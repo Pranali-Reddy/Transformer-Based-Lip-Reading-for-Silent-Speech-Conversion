@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lip Reading - Upload Center</title>
+    <link rel="stylesheet" href="/static/style.css?v=4">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="page-container">
+        <div class="top-title">AI Processing Center</div>
+        
+        <div class="main-content">
+            <h1 class="main-heading">Analyze Video</h1>
+            
+            <div class="glass-card">
+                <form action="/process" method="POST" enctype="multipart/form-data">
+                    <div class="input-group">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <input type="file" name="video" accept="video/*" required style="padding-left: 55px;">
+                    </div>
+                    
+                    <button type="submit" class="primary-btn" id="upload-btn">
+                        <i class="fas fa-brain"></i> Run Analysis
+                    </button>
+                    
+                    <div id="upload-status" style="display: none; margin-top: 20px; text-align: center;">
+                        <div class="status-badge">
+                            <i class="fas fa-circle-notch fa-spin"></i> Processing Frame Sequences...
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 30px; border-top: 1px solid var(--border-light); padding-top: 30px;">
+                        <p style="font-size: 14px; color: var(--text-dim); margin-bottom: 20px;">Prefer live input?</p>
+                        <a href="/camera" class="secondary-btn">
+                            <i class="fas fa-video"></i> Use Real-time Camera
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="bottom-text">
+            Supported formats: MP4, WebM, AVI | Max size: 50MB
+        </div>
+    </div>
+    <script>
+        const form = document.querySelector('form');
+        const btn = document.getElementById('upload-btn');
+        const status = document.getElementById('upload-status');
+
+        form.onsubmit = () => {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Analyzing...';
+            status.style.display = 'block';
+        };
+    </script>
+</body>
+</html>

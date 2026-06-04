@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lip Reading - Live Recognition</title>
+    <link rel="stylesheet" href="/static/style.css?v=4">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="page-container">
+        <div class="top-title">Real-time Transformer Analysis</div>
+        
+        <div class="main-content">
+            <h1 class="main-heading">Live Lip Reading</h1>
+            
+            <div class="glass-card" style="max-width: 800px;">
+                <div class="video-frame">
+                    <video id="webcam" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: cover;"></video>
+                    <!-- Mouth Guide Box -->
+                    <div id="mouth-guide" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 140px; height: 70px; border: 2px solid var(--secondary); border-radius: 12px; pointer-events: none; box-shadow: 0 0 25px rgba(0, 242, 254, 0.4); z-index: 10;"></div>
+                    <!-- Small Preview -->
+                    <canvas id="mouth-preview" style="position: absolute; bottom: 15px; right: 15px; width: 100px; height: 50px; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; background: #000; z-index: 20;"></canvas>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div id="prediction-status" class="status-badge">
+                        <i class="fas fa-circle-notch fa-spin"></i> Initializing AI...
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-dim);">FPS: 30 | Mode: High Accuracy</div>
+                </div>
+
+                <div id="recording-progress" style="display: none; width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; margin-bottom: 20px; overflow: hidden;">
+                    <div id="progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.1s linear;"></div>
+                </div>
+
+                <div id="result-box" class="result-container">
+                    <div id="live-text" style="font-size: 18px; line-height: 1.6; color: white;">
+                        System ready. Press "Record" and speak clearly for 3 seconds.
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px;">
+                    <button id="record-btn" class="primary-btn" style="flex: 2;">
+                        <i class="fas fa-record-vinyl"></i> Start Recognition
+                    </button>
+                    <a href="/upload" class="secondary-btn" style="flex: 1;">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-text">
+            Transformer-based Neural Network Model v2.1
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('webcam');
+        const status = document.getElementById('prediction-status');
+        const micIndicator = document.getElementById('mic-indicator');
+        const liveText = document.getElementById('live-text');
+        const recordBtn = document.getElementById('record-btn');
+        const progressBar = document.getElementById('progress-bar');
+        const progressContainer = document.getElementById('recording-progress');
+        const mouthPreview = document.getElementById('mouth-preview');
+        const ctx = mouthPreview.getContext('2d');
+        
+        let mediaRecorder;
+        let recordedChunks = [];
+        let isRecording = false;
+        let audioContext, analyser, microphone, dataArray;
+
+        async function initCamera() {
+            try {
+                // Optimize: Lower resolution (640x480) is perfect for LipNet
+                // but significantly faster to process and upload.
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user", width: 640, height: 480 },
+                    audio: true
+                });
+                video.srcObject = stream;
+                
+                // ... (rest of audio visualization)
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioContext.createAnalyser();
+                    microphone = audioContext.createMediaStreamSource(stream);
+                    microphone.connect(analyser);
+                    analyser.fftSize = 256;
+                    dataArray = new Uint8Array(analyser.frequencyBinCount);
+                    
+                    function checkAudio() {
+                        // Audio analysis is hidden from UI
+                        requestAnimationFrame(checkAudio);
+                    }
+                    checkAudio();
+                } catch(e) { console.log("Audio visualizer error:", e); }
+
+                let mimeType = 'video/webm;codecs=vp8,opus';
+                if (!MediaRecorder.isTypeSupported(mimeType)) mimeType = 'video/webm';
+
+                // Optimize: Set a reasonable bitrate to prevent huge files
+                mediaRecorder = new MediaRecorder(stream, { 
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 2500000 // 2.5 Mbps
+                });
+                
+                function drawPreview() {
+                    if (video.paused || video.ended) return;
+                    const sw = 280; const sh = 140;
+                    const sx = (video.videoWidth - sw) / 2;
+                    const sy = (video.videoHeight - sh) / 2;
+                    ctx.drawImage(video, sx, sy, sw, sh, 0, 0, mouthPreview.width, mouthPreview.height);
+                    requestAnimationFrame(drawPreview);
+                }
+                video.onplay = drawPreview;
+                
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) recordedChunks.push(e.data);
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    sendToServer(blob);
+                };
+
+                video.onloadedmetadata = () => {
+                    video.play();
+                    status.innerHTML = '<i class="fas fa-check-circle"></i> AI Analysis Online';
+                };
+            } catch (err) {
+                status.innerHTML = '<i class="fas fa-times-circle" style="color: var(--accent);"></i> Access Denied';
+            }
+        }
+
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) startRecording();
+        });
+
+        function startRecording() {
+            isRecording = true;
+            recordedChunks = [];
+            mediaRecorder.start();
+            
+            recordBtn.disabled = true;
+            recordBtn.innerHTML = '<i class="fas fa-sync fa-spin"></i> Processing...';
+            recordBtn.style.opacity = '0.7';
+            liveText.innerHTML = '<span style="color: var(--secondary);">AI is capturing lip patterns...</span>';
+            
+            progressContainer.style.display = 'block';
+            progressBar.style.width = '0%';
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 3.33;
+                progressBar.style.width = progress + '%';
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    stopRecording();
+                }
+            }, 100);
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+            isRecording = false;
+            liveText.innerHTML = '<i class="fas fa-brain fa-pulse"></i> Transformer model is decoding...';
+        }
+
+        async function sendToServer(blob) {
+            const formData = new FormData();
+            formData.append('video', blob, 'capture.webm');
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await response.json();
+                
+                liveText.innerHTML = `
+                    <div style="font-size: 24px; font-weight: 600; color: white; margin-bottom: 8px;">${data.text}</div>
+                    <div style="font-size: 14px; color: var(--secondary); letter-spacing: 1px;">AI CONFIDENCE: ${data.accuracy}</div>
+                `;
+            } catch (err) {
+                liveText.innerHTML = '<span style="color: var(--accent);">Analysis failed. Please try again.</span>';
+            } finally {
+                recordBtn.disabled = false;
+                recordBtn.style.opacity = '1';
+                recordBtn.innerHTML = '<i class="fas fa-record-vinyl"></i> Restart Recognition';
+                progressContainer.style.display = 'none';
+            }
+        }
+
+        initCamera();
+    </script>
+</body>
+</html>

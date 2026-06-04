@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lip Reading - Analysis Result</title>
+    <link rel="stylesheet" href="/static/style.css?v=4">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="page-container">
+        <div class="top-title">Transformer-Based Lip Reading For Silent Speech Conversion</div>
+        
+        <div class="main-content">
+            <h1 class="main-heading">Analysis Result</h1>
+            
+            <div class="glass-card" style="max-width: 600px;">
+                <div class="status-badge" style="margin-bottom: 25px;">
+                    <i class="fas fa-check-circle"></i> Processing Successful
+                </div>
+                
+                <div class="result-container">
+                    <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--secondary); margin-bottom: 15px; font-weight: 600;">Decoded Text</div>
+                    <div id="prediction-text" style="font-size: 24px; font-weight: 600; color: white; line-height: 1.4; min-height: 60px;">
+                        {{ result }}
+                    </div>
+                </div>
+                
+                <div style="background: rgba(255,255,255,0.03); padding: 15px 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border: 1px solid var(--border-light);">
+                    <span style="font-size: 14px; color: var(--text-dim);">Model Confidence</span>
+                    <span style="font-size: 18px; color: var(--secondary); font-weight: 700; font-family: 'Space Grotesk', sans-serif;">{{ accuracy }}</span>
+                </div>
+                
+                <div style="display: flex; gap: 15px;">
+                    <button onclick="copyText()" class="secondary-btn" style="flex: 1;">
+                        <i class="fas fa-copy"></i> Copy
+                    </button>
+                    <a href="/login" class="primary-btn" style="flex: 2;">
+                        New Analysis <i class="fas fa-redo"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bottom-text">
+            Transformer Architecture: LipNet v2.0
+        </div>
+    </div>
+
+    <script>
+    function copyText() {
+        const text = document.getElementById('prediction-text').innerText;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.querySelector('button');
+            const originalHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => btn.innerHTML = originalHtml, 2000);
+        });
+    }
+    </script>
+</body>
+</html>
