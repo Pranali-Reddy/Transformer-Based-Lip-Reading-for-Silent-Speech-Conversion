@@ -1,4 +1,4 @@
-# Transformer-Based Lip Reading for Silent Speech Conversion
+# Transformer Based Lip Reading for Silent Speech Conversion
 
 A state-of-the-art Lip Reading system that converts visual lip movements into text using a Transformer-based neural network architecture. This project provides both a real-time camera interface and a video upload feature for silent speech analysis.
 
